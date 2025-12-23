@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:focustrophy/features/timer/bloc/timer_bloc.dart';
 import 'package:focustrophy/features/timer/bloc/timer_event.dart';
@@ -38,91 +39,124 @@ class TimerControls extends StatelessWidget {
       case TimerStatus.initial:
         return ElevatedButton(
           onPressed: () {
+            HapticFeedback.mediumImpact();
             bloc.add(TimerStarted(
               studyMode: state.studyMode,
               subject: state.selectedSubject,
             ));
           },
           style: ElevatedButton.styleFrom(
-            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+            backgroundColor: const Color(0xFF6366F1),
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 20),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(30),
+              borderRadius: BorderRadius.circular(16),
             ),
+            elevation: 0,
           ),
           child: const Text(
             'Start Focus',
-            style: TextStyle(fontSize: 18),
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.5,
+            ),
           ),
         );
         
       case TimerStatus.running:
         return ElevatedButton(
           onPressed: () {
+            HapticFeedback.mediumImpact();
             bloc.add(TimerPaused());
           },
           style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.orange,
-            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+            backgroundColor: const Color(0xFFF59E0B),
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 20),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(30),
+              borderRadius: BorderRadius.circular(16),
             ),
+            elevation: 0,
           ),
           child: const Text(
             'Pause',
-            style: TextStyle(fontSize: 18),
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.5,
+            ),
           ),
         );
         
       case TimerStatus.paused:
         return ElevatedButton(
           onPressed: () {
+            HapticFeedback.mediumImpact();
             bloc.add(TimerResumed());
           },
           style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.green,
-            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+            backgroundColor: const Color(0xFF10B981),
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 20),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(30),
+              borderRadius: BorderRadius.circular(16),
             ),
+            elevation: 0,
           ),
           child: const Text(
             'Resume',
-            style: TextStyle(fontSize: 18),
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.5,
+            ),
           ),
         );
         
       case TimerStatus.completed:
         return ElevatedButton(
           onPressed: () {
+            HapticFeedback.mediumImpact();
             bloc.add(TimerReset());
           },
           style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.blue,
-            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+            backgroundColor: const Color(0xFF6366F1),
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 20),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(30),
+              borderRadius: BorderRadius.circular(16),
             ),
+            elevation: 0,
           ),
           child: const Text(
             'New Session',
-            style: TextStyle(fontSize: 18),
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.5,
+            ),
           ),
         );
         
       case TimerStatus.breakTime:
         return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+          padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 20),
           decoration: BoxDecoration(
-            color: Colors.green.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(30),
-            border: Border.all(color: Colors.green),
+            color: const Color(0xFF10B981).withOpacity(0.15),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: const Color(0xFF10B981).withOpacity(0.3),
+              width: 1,
+            ),
           ),
           child: const Text(
             'On Break',
             style: TextStyle(
               fontSize: 18,
-              color: Colors.green,
+              color: Color(0xFF10B981),
               fontWeight: FontWeight.w600,
+              letterSpacing: 0.5,
             ),
           ),
         );
@@ -130,17 +164,25 @@ class TimerControls extends StatelessWidget {
       case TimerStatus.cancelled:
         return ElevatedButton(
           onPressed: () {
+            HapticFeedback.mediumImpact();
             bloc.add(TimerReset());
           },
           style: ElevatedButton.styleFrom(
-            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+            backgroundColor: const Color(0xFF6366F1),
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 20),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(30),
+              borderRadius: BorderRadius.circular(16),
             ),
+            elevation: 0,
           ),
           child: const Text(
             'Start New',
-            style: TextStyle(fontSize: 18),
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.5,
+            ),
           ),
         );
     }
@@ -149,6 +191,7 @@ class TimerControls extends StatelessWidget {
   Widget _buildStopButton(BuildContext context) {
     return OutlinedButton(
       onPressed: () {
+        HapticFeedback.lightImpact();
         showDialog(
           context: context,
           builder: (context) {
@@ -178,17 +221,22 @@ class TimerControls extends StatelessWidget {
         );
       },
       style: OutlinedButton.styleFrom(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 20),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(30),
+          borderRadius: BorderRadius.circular(16),
         ),
-        side: const BorderSide(color: Colors.red),
+        side: const BorderSide(
+          color: Color(0xFFEF4444),
+          width: 2,
+        ),
       ),
       child: const Text(
         'Stop',
         style: TextStyle(
-          color: Colors.red,
+          color: Color(0xFFEF4444),
           fontSize: 18,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0.5,
         ),
       ),
     );

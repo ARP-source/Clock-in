@@ -1,15 +1,24 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:focustrophy/features/timer/bloc/timer_bloc.dart';
 import 'package:focustrophy/features/timer/bloc/timer_event.dart';
 import 'package:focustrophy/features/timer/bloc/timer_state.dart';
 import 'package:focustrophy/features/timer/widgets/circular_timer.dart';
+import 'package:focustrophy/features/timer/widgets/timer_controls.dart';
 import 'package:focustrophy/features/timer/widgets/subject_selector.dart';
 import 'package:focustrophy/features/timer/widgets/study_mode_selector.dart';
-import 'package:focustrophy/features/timer/widgets/timer_controls.dart';
+import 'package:focustrophy/core/models/subject.dart';
+import 'package:focustrophy/core/constants/study_modes.dart';
+import 'package:focustrophy/features/timer/widgets/transition_flash.dart';
+import 'package:focustrophy/shared/widgets/banner_ad_widget.dart';
+import 'package:focustrophy/core/services/ad_helper.dart';
 
 class TimerScreen extends StatefulWidget {
-  const TimerScreen({super.key});
+  final StudyMode? initialMode;
+  final Subject? initialSubject;
+  
+  const TimerScreen({super.key, this.initialMode, this.initialSubject});
 
   @override
   State<TimerScreen> createState() => _TimerScreenState();
@@ -17,38 +26,91 @@ class TimerScreen extends StatefulWidget {
 
 class _TimerScreenState extends State<TimerScreen> {
   bool _showOptions = false;
+  bool _showingFlash = false;
+  TimerStatus? _previousStatus;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (widget.initialMode != null) {
+        context.read<TimerBloc>().add(StudyModeSelected(widget.initialMode!));
+      }
+      if (widget.initialSubject != null) {
+        context.read<TimerBloc>().add(SubjectSelected(widget.initialSubject));
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<TimerBloc, TimerState>(
       builder: (context, state) {
-        // Background color changes based on timer state
-        Color backgroundColor = Colors.white;
-        if (state.isWorkSession) {
-          backgroundColor = const Color(0xFFFF6961); // Bright pastel red
-        } else if (state.isBreakSession) {
-          backgroundColor = const Color(0xFFE5FFE5); // Pastel green
+        // Detect transition from work to break (green flash)
+        if (_previousStatus == TimerStatus.running && 
+            state.status == TimerStatus.breakTime && 
+            !_showingFlash) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            setState(() => _showingFlash = true);
+          });
         }
-
-        // Check if timer is active (running or paused)
+        
+        // Detect transition from break to work (red flash)
+        if (_previousStatus == TimerStatus.breakTime && 
+            state.status == TimerStatus.running && 
+            !_showingFlash) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            setState(() => _showingFlash = true);
+          });
+        }
+        
+        _previousStatus = state.status;
+        
         final isTimerActive = state.status == TimerStatus.running || 
                               state.status == TimerStatus.paused ||
                               state.status == TimerStatus.breakTime;
 
-        return Scaffold(
-          backgroundColor: backgroundColor,
+        final scaffoldContent = Scaffold(
           appBar: isTimerActive ? null : AppBar(
-            title: const Text('FocusTrophy'),
+            title: const Text('Clock-in'),
           ),
-          body: SafeArea(
-            child: SingleChildScrollView(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: _buildPortraitLayout(context, state, isTimerActive),
+          body: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  const Color(0xFF0F0F12),
+                  const Color(0xFF1A1A1F).withOpacity(0.8),
+                ],
+              ),
+            ),
+            child: SafeArea(
+              child: SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.all(20.0),
+                  child: _buildPortraitLayout(context, state, isTimerActive),
+                ),
               ),
             ),
           ),
         );
+
+        // Show flash animation if transitioning
+        if (_showingFlash) {
+          final isBreakTime = state.status == TimerStatus.breakTime;
+          return TransitionFlash(
+            flashColor: isBreakTime 
+                ? const Color(0xFF10B981) // Green for break
+                : const Color(0xFFEF4444), // Red for work
+            onComplete: () {
+              setState(() => _showingFlash = false);
+            },
+            child: scaffoldContent,
+          );
+        }
+
+        return scaffoldContent;
       },
     );
   }
@@ -57,25 +119,24 @@ class _TimerScreenState extends State<TimerScreen> {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        // Menu button when timer is active
-        if (isTimerActive) ...[
-          Align(
-            alignment: Alignment.topRight,
-            child: IconButton(
-              icon: Icon(
-                _showOptions ? Icons.close : Icons.menu,
-                color: const Color(0xFF27213C),
-              ),
-              onPressed: () {
-                setState(() {
-                  _showOptions = !_showOptions;
-                });
-              },
+        // Menu button (hamburger icon) - always visible
+        Align(
+          alignment: Alignment.topRight,
+          child: IconButton(
+            icon: Icon(
+              _showOptions ? Icons.close : Icons.menu,
+              color: Colors.white,
+              size: 28,
             ),
+            onPressed: () {
+              setState(() {
+                _showOptions = !_showOptions;
+              });
+            },
           ),
-        ],
-        // Show options only when not in focus mode OR when menu is open
-        if (!isTimerActive || _showOptions) ...[
+        ),
+        // Show options only when menu is open
+        if (_showOptions) ...[
           const SizedBox(height: 20),
           StudyModeSelector(
             selectedMode: state.studyMode,
@@ -92,14 +153,14 @@ class _TimerScreenState extends State<TimerScreen> {
           ),
           const SizedBox(height: 40),
         ] else ...[
-          const SizedBox(height: 60),
+          const SizedBox(height: 40),
         ],
         Center(
           child: CircularTimer(
             state: state,
           ),
         ),
-        const SizedBox(height: 30),
+        const SizedBox(height: 40),
         TimerControls(
           state: state,
         ),
@@ -115,41 +176,41 @@ class _TimerScreenState extends State<TimerScreen> {
   }
 
   Widget _buildAdBanner() {
-    return Container(
-      width: double.infinity,
-      height: 60,
-      decoration: BoxDecoration(
-        color: Colors.grey.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.grey.withOpacity(0.3)),
-      ),
-      child: const Center(
-        child: Text(
-          'Ad Space',
-          style: TextStyle(
-            color: Colors.grey,
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-      ),
+    return BannerAdWidget(
+      adUnitId: AdHelper.timerScreenBannerAdUnitId,
     );
   }
 
   Widget _buildPenaltyIndicator(Duration penaltyTime) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       decoration: BoxDecoration(
-        color: Colors.red.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.red.withOpacity(0.3)),
-      ),
-      child: Text(
-        '+${penaltyTime.inMinutes}:${(penaltyTime.inSeconds % 60).toString().padLeft(2, '0')} Time Added',
-        style: const TextStyle(
-          color: Colors.red,
-          fontWeight: FontWeight.w500,
+        color: const Color(0xFFEF4444).withOpacity(0.15),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: const Color(0xFFEF4444).withOpacity(0.3),
+          width: 1,
         ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(
+            Icons.warning_amber_rounded,
+            color: Color(0xFFEF4444),
+            size: 20,
+          ),
+          const SizedBox(width: 8),
+          Text(
+            '+${penaltyTime.inMinutes}:${(penaltyTime.inSeconds % 60).toString().padLeft(2, '0')} Penalty',
+            style: const TextStyle(
+              color: Color(0xFFEF4444),
+              fontWeight: FontWeight.w600,
+              fontSize: 14,
+              letterSpacing: 0.5,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -195,13 +256,13 @@ class _TimerScreenState extends State<TimerScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('About FocusTrophy'),
+        title: const Text('About Clock-in'),
         content: const Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'FocusTrophy v1.0.0',
+              'Clock-in v1.0.0',
               style: TextStyle(fontWeight: FontWeight.bold),
             ),
             SizedBox(height: 12),
@@ -241,7 +302,7 @@ class _TimerScreenState extends State<TimerScreen> {
               ),
               SizedBox(height: 8),
               Text(
-                'FocusTrophy stores all your data locally on your device. We do not collect, transmit, or share any personal information.',
+                'Clock-in stores all your data locally on your device. We do not collect, transmit, or share any personal information.',
               ),
               SizedBox(height: 16),
               Text(
@@ -290,7 +351,7 @@ class _TimerScreenState extends State<TimerScreen> {
             SizedBox(height: 12),
             Text('• Check our FAQ section for common questions'),
             SizedBox(height: 8),
-            Text('• Email: support@focustrophy.app'),
+            Text('• Email: support@clock-in.app'),
             SizedBox(height: 8),
             Text('• Visit our website for tutorials and tips'),
             SizedBox(height: 16),
@@ -300,7 +361,7 @@ class _TimerScreenState extends State<TimerScreen> {
             ),
             SizedBox(height: 8),
             Text(
-              'We love hearing from our users! Send us your suggestions and feature requests.',
+              'We love hearing from our users! Send us your suggestions and feature requests for Clock-in.',
             ),
           ],
         ),

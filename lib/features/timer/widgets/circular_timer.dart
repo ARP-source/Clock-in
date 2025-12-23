@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:focustrophy/features/timer/bloc/timer_state.dart';
+import 'package:focustrophy/features/timer/widgets/glowing_timer_ring.dart';
+import 'package:focustrophy/shared/widgets/glass_card.dart';
 
 class CircularTimer extends StatelessWidget {
   final TimerState state;
@@ -11,113 +13,79 @@ class CircularTimer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final subjectColor = state.selectedSubject != null
+        ? Color(state.selectedSubject!.colorHex)
+        : const Color(0xFF6366F1);
+
     return SizedBox(
-      width: 280,
-      height: 280,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          // Background circle (inner circle)
-          Container(
-            width: 280,
-            height: 280,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: _getInnerCircleColor(),
-              border: Border.all(
-                color: Colors.grey.withOpacity(0.2),
-                width: 2,
-              ),
+      width: 320,
+      height: 320,
+      child: GlowingTimerRing(
+        progress: state.progress,
+        color: subjectColor,
+        duration: state.displayTime,
+        isPulsing: state.penaltyTime > Duration.zero,
+        child: Center(
+          child: GlassCard(
+            borderRadius: 160,
+            padding: const EdgeInsets.all(40),
+            border: Border.all(
+              color: subjectColor.withOpacity(0.2),
+              width: 1,
             ),
-          ),
-          
-          // Progress ring
-          SizedBox(
-            width: 280,
-            height: 280,
-            child: CircularProgressIndicator(
-              value: state.progress,
-              strokeWidth: 8,
-              backgroundColor: Colors.transparent,
-              valueColor: AlwaysStoppedAnimation<Color>(
-                _getProgressColor(context),
-              ),
-            ),
-          ),
-          
-          // Timer content
-          Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                _formatTime(state.displayTime),
-                style: const TextStyle(
-                  fontSize: 48,
-                  fontWeight: FontWeight.w300,
-                  letterSpacing: -1,
-                  color: Color(0xFF27213C),
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                _getStatusText(),
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.grey[600],
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              if (state.selectedSubject != null) ...[
-                const SizedBox(height: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 4,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  _formatTime(state.displayTime),
+                  style: Theme.of(context).textTheme.displayLarge?.copyWith(
+                    fontSize: 64,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
                   ),
-                  decoration: BoxDecoration(
-                    color: Color(state.selectedSubject!.colorHex).withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: Color(state.selectedSubject!.colorHex),
-                      width: 1,
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  _getStatusText(),
+                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                    fontSize: 12,
+                  ),
+                ),
+                if (state.selectedSubject != null) ...[
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: subjectColor.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: subjectColor.withOpacity(0.3),
+                        width: 1,
+                      ),
+                    ),
+                    child: Text(
+                      state.selectedSubject!.name,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: subjectColor,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 0.5,
+                      ),
                     ),
                   ),
-                  child: Text(
-                    state.selectedSubject!.name,
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Color(state.selectedSubject!.colorHex),
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
+                ],
               ],
-            ],
+            ),
           ),
-        ],
+        ),
       ),
     );
   }
 
-  Color _getProgressColor(BuildContext context) {
-    if (state.isWorkSession) {
-      return const Color(0xFFB4D9E2); // Light blue-teal for work sessions
-    } else if (state.isBreakSession) {
-      return Colors.green;
-    } else if (state.status == TimerStatus.completed) {
-      return Colors.amber;
-    }
-    return Colors.grey;
-  }
-
-  Color _getInnerCircleColor() {
-    if (state.isWorkSession) {
-      return const Color(0xFFFFB3B0); // Lighter pastel red
-    } else if (state.isBreakSession) {
-      return const Color(0xFFB8E6B8); // Lighter pastel green
-    }
-    return const Color(0xFFF5F5F5); // Light grey for initial/other states
-  }
 
   String _formatTime(Duration duration) {
     final minutes = duration.inMinutes;

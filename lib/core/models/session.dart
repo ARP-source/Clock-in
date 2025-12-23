@@ -39,6 +39,12 @@ class Session {
   // Calculate total session duration
   int get totalMinutes => focusMinutes + penaltyMinutes;
 
+  // Calculate Focus Score (0-100)
+  double get focusScore {
+    if (focusMinutes == 0) return 0.0;
+    return (focusMinutes / (focusMinutes + penaltyMinutes)) * 100;
+  }
+
   // Create a copy with updated fields
   Session copyWith({
     String? id,

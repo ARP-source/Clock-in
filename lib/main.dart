@@ -4,6 +4,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:focustrophy/core/models/session.dart';
 import 'package:focustrophy/core/models/subject.dart';
 import 'package:focustrophy/core/services/penalty_timer_service.dart';
+import 'package:focustrophy/core/services/ad_helper.dart';
 import 'package:focustrophy/features/settings/bloc/premium_status_bloc.dart';
 import 'package:focustrophy/features/timer/bloc/timer_bloc.dart';
 import 'package:focustrophy/app.dart';
@@ -21,6 +22,9 @@ void main() async {
   // Open Hive boxes
   await Hive.openBox<Subject>('subjects');
   await Hive.openBox<Session>('sessions');
+  
+  // Initialize AdMob (only on supported platforms)
+  await AdHelper.initialize();
   
   runApp(const FocusTrophyApp());
 }
