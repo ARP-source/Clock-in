@@ -97,7 +97,7 @@ class _GlowingRingPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height / 2);
     final radius = math.min(size.width, size.height) / 2 - 40;
-    final strokeWidth = 12.0;
+    const strokeWidth = 12.0;
 
     // Background ring (subtle)
     final backgroundPaint = Paint()

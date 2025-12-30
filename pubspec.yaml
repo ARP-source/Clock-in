@@ -22,13 +22,14 @@ dependencies:
   fl_chart: ^0.63.0
   
   # Monetization (Placeholders)
-  google_mobile_ads: ^3.1.0
-  purchases_flutter: ^6.0.0
+  google_mobile_ads: ^5.2.0
+  purchases_flutter: ^8.2.3
   
   # UI/UX
   cupertino_icons: ^1.0.6
   audioplayers: ^5.2.1
-  vibration: ^1.8.4
+  vibration: ^2.0.0
+  wakelock_plus: ^1.2.0
   
 dev_dependencies:
   flutter_test:
@@ -43,6 +44,7 @@ flutter:
   assets:
     - assets/images/
     - assets/icons/
+    - assets/sounds/
 
 flutter_intl:
   enabled: true

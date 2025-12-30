@@ -1,9 +1,34 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:focustrophy/features/settings/bloc/premium_status_bloc.dart';
+import 'package:focustrophy/core/services/settings_service.dart';
 
-class SettingsScreen extends StatelessWidget {
+class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
+
+  @override
+  State<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends State<SettingsScreen> {
+  late SettingsService _settingsService;
+  bool _soundEffects = true;
+  bool _vibrations = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _settingsService = SettingsService();
+    _loadSettings();
+  }
+
+  Future<void> _loadSettings() async {
+    await _settingsService.init();
+    setState(() {
+      _soundEffects = _settingsService.soundEffectsEnabled;
+      _vibrations = _settingsService.vibrationsEnabled;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -141,18 +166,24 @@ class SettingsScreen extends StatelessWidget {
             const SizedBox(height: 16),
             SwitchListTile(
               title: const Text('Sound Effects'),
-              subtitle: const Text('Play sounds for timer events'),
-              value: true, // Placeholder - would be managed by settings bloc
-              onChanged: (value) {
-                // Handle setting change
+              subtitle: const Text('Play sounds for button clicks and timer events'),
+              value: _soundEffects,
+              onChanged: (value) async {
+                await _settingsService.setSoundEffects(value);
+                setState(() {
+                  _soundEffects = value;
+                });
               },
             ),
             SwitchListTile(
               title: const Text('Vibration'),
-              subtitle: const Text('Vibrate on timer events'),
-              value: true, // Placeholder
-              onChanged: (value) {
-                // Handle setting change
+              subtitle: const Text('Vibrate when timer completes and break starts'),
+              value: _vibrations,
+              onChanged: (value) async {
+                await _settingsService.setVibrations(value);
+                setState(() {
+                  _vibrations = value;
+                });
               },
             ),
             ListTile(

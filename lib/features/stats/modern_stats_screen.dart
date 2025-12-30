@@ -480,11 +480,9 @@ class ModernStatsScreen extends StatelessWidget {
     final subjectMinutes = <String, int>{};
     
     for (final session in sessions) {
-      if (session.subjectId != null) {
-        subjectMinutes[session.subjectId!] = 
-            (subjectMinutes[session.subjectId!] ?? 0) + session.focusMinutes;
-      }
-    }
+      subjectMinutes[session.subjectId!] = 
+          (subjectMinutes[session.subjectId!] ?? 0) + session.focusMinutes;
+        }
     
     if (subjectMinutes.isEmpty) {
       return Column(

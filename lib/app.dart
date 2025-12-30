@@ -33,11 +33,9 @@ class App extends StatelessWidget {
         primary: accentColor,
         secondary: Color(0xFF8B5CF6),
         surface: surfaceColor,
-        background: deepCharcoal,
         onPrimary: Colors.white,
         onSecondary: Colors.white,
         onSurface: Color(0xFFE5E7EB),
-        onBackground: Color(0xFFE5E7EB),
       ),
       
       textTheme: const TextTheme(

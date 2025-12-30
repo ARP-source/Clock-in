@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:focustrophy/features/timer/bloc/timer_bloc.dart';
 import 'package:focustrophy/features/timer/bloc/timer_event.dart';
@@ -13,6 +12,10 @@ import 'package:focustrophy/core/constants/study_modes.dart';
 import 'package:focustrophy/features/timer/widgets/transition_flash.dart';
 import 'package:focustrophy/shared/widgets/banner_ad_widget.dart';
 import 'package:focustrophy/core/services/ad_helper.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
+import 'package:vibration/vibration.dart';
+import 'package:focustrophy/core/services/settings_service.dart';
+import 'package:focustrophy/core/services/audio_service.dart';
 
 class TimerScreen extends StatefulWidget {
   final StudyMode? initialMode;
@@ -28,10 +31,16 @@ class _TimerScreenState extends State<TimerScreen> {
   bool _showOptions = false;
   bool _showingFlash = false;
   TimerStatus? _previousStatus;
+  late SettingsService _settingsService;
+  late AudioService _audioService;
 
   @override
   void initState() {
     super.initState();
+    _settingsService = SettingsService();
+    _settingsService.init();
+    _audioService = AudioService(_settingsService);
+    
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (widget.initialMode != null) {
         context.read<TimerBloc>().add(StudyModeSelected(widget.initialMode!));
@@ -40,6 +49,13 @@ class _TimerScreenState extends State<TimerScreen> {
         context.read<TimerBloc>().add(SubjectSelected(widget.initialSubject));
       }
     });
+  }
+
+  @override
+  void dispose() {
+    WakelockPlus.disable();
+    _audioService.dispose();
+    super.dispose();
   }
 
   @override
@@ -52,6 +68,7 @@ class _TimerScreenState extends State<TimerScreen> {
             !_showingFlash) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             setState(() => _showingFlash = true);
+            _playTransitionEffects(isBreak: true);
           });
         }
         
@@ -61,6 +78,7 @@ class _TimerScreenState extends State<TimerScreen> {
             !_showingFlash) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             setState(() => _showingFlash = true);
+            _playTransitionEffects(isBreak: false);
           });
         }
         
@@ -69,6 +87,13 @@ class _TimerScreenState extends State<TimerScreen> {
         final isTimerActive = state.status == TimerStatus.running || 
                               state.status == TimerStatus.paused ||
                               state.status == TimerStatus.breakTime;
+
+        // Enable wake lock when timer is running or in break time
+        if (state.status == TimerStatus.running || state.status == TimerStatus.breakTime) {
+          WakelockPlus.enable();
+        } else {
+          WakelockPlus.disable();
+        }
 
         final scaffoldContent = Scaffold(
           appBar: isTimerActive ? null : AppBar(
@@ -86,11 +111,13 @@ class _TimerScreenState extends State<TimerScreen> {
               ),
             ),
             child: SafeArea(
-              child: SingleChildScrollView(
-                child: Padding(
-                  padding: const EdgeInsets.all(20.0),
-                  child: _buildPortraitLayout(context, state, isTimerActive),
-                ),
+              child: OrientationBuilder(
+                builder: (context, orientation) {
+                  if (orientation == Orientation.landscape) {
+                    return _buildLandscapeLayout(context, state, isTimerActive);
+                  }
+                  return _buildPortraitLayout(context, state, isTimerActive);
+                },
               ),
             ),
           ),
@@ -115,10 +142,131 @@ class _TimerScreenState extends State<TimerScreen> {
     );
   }
 
-  Widget _buildPortraitLayout(BuildContext context, TimerState state, bool isTimerActive) {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
+  Future<void> _playTransitionEffects({required bool isBreak}) async {
+    // Play sound effect
+    if (isBreak) {
+      await _audioService.playBreakStart();
+    } else {
+      await _audioService.playTimerComplete();
+    }
+    
+    // Vibrate if enabled
+    if (_settingsService.vibrationsEnabled) {
+      final hasVibrator = await Vibration.hasVibrator();
+      if (hasVibrator == true) {
+        // Pattern: wait 0ms, vibrate 500ms, wait 200ms, vibrate 500ms
+        await Vibration.vibrate(pattern: [0, 500, 200, 500]);
+      }
+    }
+  }
+
+  Widget _buildLandscapeLayout(BuildContext context, TimerState state, bool isTimerActive) {
+    return Row(
       children: [
+        // Left side - Ad banner (rotated vertically)
+        Container(
+          width: 60,
+          child: RotatedBox(
+            quarterTurns: 3,
+            child: _buildAdBanner(),
+          ),
+        ),
+        // Main content area
+        Expanded(
+          child: Stack(
+            children: [
+              // Timer and controls in a row
+              Center(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    // Timer on the left
+                    CircularTimer(
+                      state: state,
+                    ),
+                    const SizedBox(width: 40),
+                    // Controls on the right
+                    Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        TimerControls(
+                          state: state,
+                        ),
+                        if (state.penaltyTime > Duration.zero) ...[
+                          const SizedBox(height: 15),
+                          _buildPenaltyIndicator(state.penaltyTime),
+                        ],
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              // Menu button in top right
+              Positioned(
+                top: 10,
+                right: 10,
+                child: IconButton(
+                  icon: Icon(
+                    _showOptions ? Icons.close : Icons.menu,
+                    color: Colors.white,
+                    size: 24,
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      _showOptions = !_showOptions;
+                    });
+                  },
+                ),
+              ),
+              // Options panel on right side when open
+              if (_showOptions)
+                Positioned(
+                  top: 60,
+                  right: 10,
+                  child: Container(
+                    width: 250,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1A1A1F).withOpacity(0.95),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: Colors.white.withOpacity(0.1),
+                        width: 1,
+                      ),
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        StudyModeSelector(
+                          selectedMode: state.studyMode,
+                          onModeSelected: (mode) {
+                            context.read<TimerBloc>().add(StudyModeSelected(mode));
+                          },
+                        ),
+                        const SizedBox(height: 20),
+                        SubjectSelector(
+                          selectedSubject: state.selectedSubject,
+                          onSubjectSelected: (subject) {
+                            context.read<TimerBloc>().add(SubjectSelected(subject));
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPortraitLayout(BuildContext context, TimerState state, bool isTimerActive) {
+    return Padding(
+      padding: const EdgeInsets.all(20.0),
+      child: Column(
+        children: [
         // Menu button (hamburger icon) - always visible
         Align(
           alignment: Alignment.topRight,
@@ -168,10 +316,12 @@ class _TimerScreenState extends State<TimerScreen> {
           const SizedBox(height: 20),
           _buildPenaltyIndicator(state.penaltyTime),
         ],
-        const SizedBox(height: 30),
-        // Ad Banner placeholder
+        const Spacer(),
+        // Ad Banner at bottom
         _buildAdBanner(),
+        const SizedBox(height: 10),
       ],
+      ),
     );
   }
 

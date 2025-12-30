@@ -4,14 +4,38 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:focustrophy/features/timer/bloc/timer_bloc.dart';
 import 'package:focustrophy/features/timer/bloc/timer_event.dart';
 import 'package:focustrophy/features/timer/bloc/timer_state.dart';
+import 'package:focustrophy/core/services/settings_service.dart';
+import 'package:focustrophy/core/services/audio_service.dart';
 
-class TimerControls extends StatelessWidget {
+class TimerControls extends StatefulWidget {
   final TimerState state;
 
   const TimerControls({
     super.key,
     required this.state,
   });
+
+  @override
+  State<TimerControls> createState() => _TimerControlsState();
+}
+
+class _TimerControlsState extends State<TimerControls> {
+  late SettingsService _settingsService;
+  late AudioService _audioService;
+
+  @override
+  void initState() {
+    super.initState();
+    _settingsService = SettingsService();
+    _settingsService.init();
+    _audioService = AudioService(_settingsService);
+  }
+
+  @override
+  void dispose() {
+    _audioService.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -21,8 +45,8 @@ class TimerControls extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             _buildControlButton(context),
-            if (state.status == TimerStatus.running || 
-                state.status == TimerStatus.paused) ...[
+            if (widget.state.status == TimerStatus.running || 
+                widget.state.status == TimerStatus.paused) ...[
               const SizedBox(width: 16),
               _buildStopButton(context),
             ],
@@ -35,14 +59,15 @@ class TimerControls extends StatelessWidget {
   Widget _buildControlButton(BuildContext context) {
     final bloc = context.read<TimerBloc>();
     
-    switch (state.status) {
+    switch (widget.state.status) {
       case TimerStatus.initial:
         return ElevatedButton(
           onPressed: () {
+            _audioService.playButtonClick();
             HapticFeedback.mediumImpact();
             bloc.add(TimerStarted(
-              studyMode: state.studyMode,
-              subject: state.selectedSubject,
+              studyMode: widget.state.studyMode,
+              subject: widget.state.selectedSubject,
             ));
           },
           style: ElevatedButton.styleFrom(
@@ -67,6 +92,7 @@ class TimerControls extends StatelessWidget {
       case TimerStatus.running:
         return ElevatedButton(
           onPressed: () {
+            _audioService.playButtonClick();
             HapticFeedback.mediumImpact();
             bloc.add(TimerPaused());
           },
@@ -92,6 +118,7 @@ class TimerControls extends StatelessWidget {
       case TimerStatus.paused:
         return ElevatedButton(
           onPressed: () {
+            _audioService.playButtonClick();
             HapticFeedback.mediumImpact();
             bloc.add(TimerResumed());
           },
@@ -117,6 +144,7 @@ class TimerControls extends StatelessWidget {
       case TimerStatus.completed:
         return ElevatedButton(
           onPressed: () {
+            _audioService.playButtonClick();
             HapticFeedback.mediumImpact();
             bloc.add(TimerReset());
           },
@@ -164,6 +192,7 @@ class TimerControls extends StatelessWidget {
       case TimerStatus.cancelled:
         return ElevatedButton(
           onPressed: () {
+            _audioService.playButtonClick();
             HapticFeedback.mediumImpact();
             bloc.add(TimerReset());
           },
@@ -191,6 +220,7 @@ class TimerControls extends StatelessWidget {
   Widget _buildStopButton(BuildContext context) {
     return OutlinedButton(
       onPressed: () {
+        _audioService.playButtonClick();
         HapticFeedback.lightImpact();
         showDialog(
           context: context,
