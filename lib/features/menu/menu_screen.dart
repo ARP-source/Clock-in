@@ -4,7 +4,7 @@ import 'package:focustrophy/features/clocks/clocks_selection_screen.dart';
 import 'package:focustrophy/features/stats/modern_stats_screen.dart';
 import 'package:focustrophy/features/settings/settings_screen.dart';
 import 'package:focustrophy/shared/widgets/glass_card.dart';
-import 'package:focustrophy/shared/widgets/particle_background.dart';
+import 'package:focustrophy/shared/widgets/beams_background.dart';
 import 'package:focustrophy/shared/utils/page_transitions.dart';
 
 class MenuScreen extends StatelessWidget {
@@ -13,23 +13,23 @@ class MenuScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: ParticleBackground(
-        particleCount: 100,
-        particleColors: const [
-          Color(0xFF6366F1),
-          Color(0xFF8B5CF6),
-          Color(0xFF06B6D4),
-        ],
-        speed: 0.3,
-        particleSize: 1.5,
+      body: BeamsBackground(
+        beamWidth: 2,
+        beamHeight: 15,
+        beamNumber: 12,
+        lightColor: Colors.white,
+        speed: 2,
+        noiseIntensity: 1.75,
+        scale: 0.2,
+        rotation: 0,
         child: Container(
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
+            gradient: RadialGradient(
+              center: Alignment.center,
+              radius: 1.5,
               colors: [
-                const Color(0xFF0F0F12),
-                const Color(0xFF1A1A1F).withOpacity(0.8),
+                Colors.transparent,
+                const Color(0xFF0F0F12).withOpacity(0.8),
               ],
             ),
           ),
@@ -38,74 +38,128 @@ class MenuScreen extends StatelessWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: LinearGradient(
-                      colors: [
-                        const Color(0xFF6366F1).withOpacity(0.3),
-                        const Color(0xFF8B5CF6).withOpacity(0.3),
+                  TweenAnimationBuilder<double>(
+                    tween: Tween(begin: 0, end: 1),
+                    duration: const Duration(milliseconds: 1200),
+                    curve: Curves.easeOutBack,
+                    builder: (context, value, child) {
+                      return Transform.scale(
+                        scale: value,
+                        child: Opacity(
+                          opacity: value,
+                          child: child,
+                        ),
+                      );
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.all(24),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.1),
+                          width: 1,
+                        ),
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            Colors.white.withOpacity(0.1),
+                            Colors.white.withOpacity(0.02),
+                          ],
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.white.withOpacity(0.05),
+                            blurRadius: 40,
+                            spreadRadius: 5,
+                          ),
+                        ],
+                      ),
+                      child: const Icon(
+                        Icons.access_time_rounded,
+                        size: 72,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 40),
+                  TweenAnimationBuilder<double>(
+                    tween: Tween(begin: 0, end: 1),
+                    duration: const Duration(milliseconds: 1000),
+                    curve: Curves.easeOut,
+                    builder: (context, value, child) {
+                      return Opacity(
+                        opacity: value,
+                        child: Transform.translate(
+                          offset: Offset(0, 20 * (1 - value)),
+                          child: child,
+                        ),
+                      );
+                    },
+                    child: Column(
+                      children: [
+                        Text(
+                          'CLOCK-IN',
+                          style: Theme.of(context).textTheme.displayMedium?.copyWith(
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 8,
+                            color: Colors.white,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Container(
+                          width: 40,
+                          height: 2,
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.3),
+                            borderRadius: BorderRadius.circular(1),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          'PRECISION FOCUS',
+                          style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                            letterSpacing: 4,
+                            color: Colors.white.withOpacity(0.5),
+                          ),
+                        ),
                       ],
                     ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFF6366F1).withOpacity(0.3),
-                        blurRadius: 40,
-                        spreadRadius: 10,
-                      ),
-                    ],
                   ),
-                  child: const Icon(
-                    Icons.access_time_rounded,
-                    size: 64,
+                  const SizedBox(height: 80),
+                  _MenuButton(
+                    icon: Icons.timer_outlined,
+                    label: 'START SESSION',
                     color: Colors.white,
+                    onTap: () {
+                      HapticFeedback.mediumImpact();
+                      context.pushWithFadeSlide(const ClocksSelectionScreen());
+                    },
                   ),
-                ),
-                const SizedBox(height: 32),
-                Text(
-                  'Clock-in',
-                  style: Theme.of(context).textTheme.headlineLarge,
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Track your time, stay focused',
-                  style: Theme.of(context).textTheme.labelLarge,
-                ),
-                const SizedBox(height: 80),
-                _MenuButton(
-                  icon: Icons.timer_outlined,
-                  label: 'Clocks',
-                  color: const Color(0xFF6366F1),
-                  onTap: () {
-                    HapticFeedback.lightImpact();
-                    context.pushWithFadeSlide(const ClocksSelectionScreen());
-                  },
-                ),
-                const SizedBox(height: 16),
-                _MenuButton(
-                  icon: Icons.bar_chart_rounded,
-                  label: 'Stats',
-                  color: const Color(0xFF8B5CF6),
-                  onTap: () {
-                    HapticFeedback.lightImpact();
-                    context.pushWithFadeSlide(const ModernStatsScreen());
-                  },
-                ),
-                const SizedBox(height: 16),
-                _MenuButton(
-                  icon: Icons.settings_outlined,
-                  label: 'Settings',
-                  color: const Color(0xFF06B6D4),
-                  onTap: () {
-                    HapticFeedback.lightImpact();
-                    context.pushWithFadeSlide(const SettingsScreen());
-                  },
-                ),
-              ],
+                  const SizedBox(height: 20),
+                  _MenuButton(
+                    icon: Icons.bar_chart_rounded,
+                    label: 'ANALYTICS',
+                    color: Colors.white.withOpacity(0.7),
+                    onTap: () {
+                      HapticFeedback.lightImpact();
+                      context.pushWithFadeSlide(const ModernStatsScreen());
+                    },
+                  ),
+                  const SizedBox(height: 20),
+                  _MenuButton(
+                    icon: Icons.settings_outlined,
+                    label: 'PREFERENCES',
+                    color: Colors.white.withOpacity(0.7),
+                    onTap: () {
+                      HapticFeedback.lightImpact();
+                      context.pushWithFadeSlide(const SettingsScreen());
+                    },
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
         ),
       ),
     );
@@ -127,46 +181,49 @@ class _MenuButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GlassButton(
-      onTap: onTap,
-      borderRadius: 24,
-      glowColor: color,
-      child: SizedBox(
-        width: 300,
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: color.withOpacity(0.15),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: color.withOpacity(0.3),
-                  width: 1,
-                ),
-              ),
-              child: Icon(
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: 1),
+      duration: const Duration(milliseconds: 800),
+      builder: (context, value, child) {
+        return Opacity(
+          opacity: value,
+          child: Transform.translate(
+            offset: Offset(0, 10 * (1 - value)),
+            child: child,
+          ),
+        );
+      },
+      child: GlassButton(
+        onTap: onTap,
+        borderRadius: 20,
+        color: Colors.white.withOpacity(0.03),
+        child: SizedBox(
+          width: 280,
+          child: Row(
+            children: [
+              Icon(
                 icon,
-                size: 28,
+                size: 22,
                 color: color,
               ),
-            ),
-            const SizedBox(width: 20),
-            Expanded(
-              child: Text(
-                label,
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  color: Colors.white,
-                  letterSpacing: 0.5,
+              const SizedBox(width: 24),
+              Expanded(
+                child: Text(
+                  label,
+                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                    color: color,
+                    letterSpacing: 2,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
-            ),
-            Icon(
-              Icons.arrow_forward_ios_rounded,
-              color: color.withOpacity(0.6),
-              size: 18,
-            ),
-          ],
+              Icon(
+                Icons.chevron_right_rounded,
+                color: color.withOpacity(0.3),
+                size: 20,
+              ),
+            ],
+          ),
         ),
       ),
     );
